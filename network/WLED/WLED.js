@@ -20,7 +20,7 @@ export function ControllableParameters() {
 		{"property":"LightingMode", "group":"settings", "label":"Lighting Mode", "type":"combobox", "values":["Canvas", "Forced"], "default":"Canvas"},
 		{"property":"forcedColor", "group":"settings", "label":"Forced Color", "min":"0", "max":"360", "type":"color", "default":"#009bde"},
 		{"property":"turnOffOnShutdown", "group":"settings", "label":"Turn WLED device OFF on Shutdown", "type":"boolean", "default":"false"},
-		{"property":"display_mode","label":"Display Mode", "type":"combobox", "values":["Components", "Time", "TimeMini"], "default":"Components"},
+		{"property":"display_mode","label":"Display Mode", "type":"combobox", "values":["Components", "Time", "TimeMini", "Nollie", "WLED"], "default":"Components"},
 		{"property":"clock_mode","label":"Clock Mode", "type":"combobox", "values":["12-hour", "24-hour"], "default":"24-hour"},
 		{"property":"display_map","label":"Matrix Type", "type":"combobox", "values":["32x8"], "default":"32x8"},
 	];
@@ -40,6 +40,7 @@ const DIGITS =
 	    [1, 0, 1],
 	    [1, 0, 1],
 	    [1, 0, 1],
+		[1, 0, 1],
 	    [1, 1, 1]
 	],
 	'1': [
@@ -47,6 +48,7 @@ const DIGITS =
 	    [1, 1, 0],
 	    [0, 1, 0],
 	    [0, 1, 0],
+		[0, 1, 0],
 	    [1, 1, 1]
 	],
 	'2': [
@@ -54,6 +56,7 @@ const DIGITS =
 	    [0, 0, 1],
 	    [1, 1, 1],
 	    [1, 0, 0],
+		[1, 0, 0],
 	    [1, 1, 1]
 	],
 	'3': [
@@ -61,6 +64,7 @@ const DIGITS =
 	    [0, 0, 1],
 	    [1, 1, 1],
 	    [0, 0, 1],
+		[0, 0, 1],
 	    [1, 1, 1]
 	],
 	'4': [
@@ -68,6 +72,7 @@ const DIGITS =
 	    [1, 0, 1],
 	    [1, 1, 1],
 	    [0, 0, 1],
+		[0, 0, 1],
 	    [0, 0, 1]
 	],
 	'5': [
@@ -75,6 +80,7 @@ const DIGITS =
 	    [1, 0, 0],
 	    [1, 1, 1],
 	    [0, 0, 1],
+		[0, 0, 1],
 	    [1, 1, 1]
 	],
 	'6': [
@@ -82,20 +88,23 @@ const DIGITS =
 	    [1, 0, 0],
 	    [1, 1, 1],
 	    [1, 0, 1],
+		[1, 0, 1],
 	    [1, 1, 1]
 	],
 	'7': [
 	    [1, 1, 1],
 	    [0, 0, 1],
 	    [0, 0, 1],
-	    [0, 0, 1],
-	    [0, 0, 1]
+	    [0, 1, 0],
+		[0, 1, 0],
+	    [0, 1, 0]
 	],
 	'8': [
 	    [1, 1, 1],
 	    [1, 0, 1],
 	    [1, 1, 1],
 	    [1, 0, 1],
+		[1, 0, 1],
 	    [1, 1, 1]
 	],
 	'9': [
@@ -103,12 +112,14 @@ const DIGITS =
 	    [1, 0, 1],
 	    [1, 1, 1],
 	    [0, 0, 1],
+		[0, 0, 1],
 	    [1, 1, 1]
 	],
 	':': [
 		    [0],
 		    [1],
 		    [0],
+			[0],
 		    [1],
 		    [0]
 	],
@@ -117,28 +128,99 @@ const DIGITS =
 		    [0],
 		    [0],
 		    [0],
+			[0],
 		    [0]	
 	],
-	'A':[
+	'a':[
 		[1, 1, 1],
 		[1, 0, 1],
 		[1, 1, 1],
 		[1, 0, 1],
 		[1, 0, 1]
 	],
-	'P':[
+	'p':[
 		[1, 1, 1],
 		[1, 0, 1],
 		[1, 1, 1],
 		[1, 0, 0],
 		[1, 0, 0],
 	],
-	'M':[
+	'm':[
 		[1, 0, 1],
 		[1, 1, 1],
 		[1, 1, 1],
 		[1, 0, 1],
 		[1, 0 ,1]
+	],
+	'N':[
+		[1, 1, 0, 0, 1, 1],
+		[1, 1, 0, 0, 1, 1],
+		[1, 1, 0, 0, 1, 1],
+		[1, 1, 1, 0, 1, 1],
+		[1, 1, 1, 1, 1, 1],
+		[1, 1, 0, 1, 1, 1],
+		[1, 1, 0, 0, 1, 1],
+		[1, 1, 0, 0, 1, 1]
+	],
+	'O':[
+		[0, 1, 1, 1, 0],
+		[1, 1, 1, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 1, 1, 1],
+		[0, 1, 1, 1, 0]
+	],
+	'I':[
+		[1, 1],
+		[1, 1],
+		[0, 0],
+		[1, 1],
+		[1, 1],
+		[1, 1],
+		[1, 1],
+		[1, 1]
+	],
+	'L':[
+		[1, 1, 0, 0],
+		[1, 1, 0, 0],
+		[1, 1, 0, 0],
+		[1, 1, 0, 0],
+		[1, 1, 0, 0],
+		[1, 1, 0, 0],
+		[1, 1, 1, 1],
+		[1, 1, 1, 1]
+	],
+	'E':[
+		[1, 1, 1, 1, 1],
+		[1, 1, 1, 1, 1],
+		[1, 1, 0, 0, 0],
+		[1, 1, 1, 1, 1],
+		[1, 1, 1, 1, 1],
+		[1, 1, 0, 0, 0],
+		[1, 1, 1, 1, 1],
+		[1, 1, 1, 1, 1],
+	],
+	'W':[
+		[1, 1, 0, 0, 0, 1, 1],
+		[1, 1, 0, 0, 0, 1, 1],
+		[1, 1, 0, 0, 0, 1, 1],
+		[1, 1, 0, 0, 0, 1, 1],
+		[1, 1, 0, 1, 0, 1, 1],
+		[1, 1, 1, 1, 1, 1, 1],
+		[1, 1, 1, 1, 1, 1, 1],
+		[1, 1, 1, 0, 1, 1, 1],
+	],
+	'D':[
+		[1, 1, 1, 1, 0],
+		[1, 1, 1, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 1, 1, 1],
+		[1, 1, 1, 1, 0]
 	]
 };
 
@@ -162,14 +244,20 @@ function insertDigitIntoDisplay(display, digit, startCol)
         for (let col = 0; col < digit[row].length; col++) 
         {
         	let index;
-        	if(display_mode == "TimeMini")
-        	{
-				index = (row * 32 + 32) + startCol + col + (clock_mode == '12-hour' ? 0 : 4); // 计算一维数组中的索引
-        	}	
-        	else
-        	{
-				index = (row * 32 + 32) + startCol + col + (clock_mode == '12-hour' ? 3 : 2); // 计算一维数组中的索引
-        	}
+			switch(display_mode) 
+			{
+				case 'TimeMini':
+					index = (row * 32 + 32) + startCol + col + (clock_mode == '12-hour' ? 0 : 4); // 计算一维数组中的索引
+					break;
+				case 'Time':
+					index = (row * 32 + 32) + startCol + col + (clock_mode == '12-hour' ? 3 : 2); // 计算一维数组中的索引
+					break;
+				case 'WLED':
+					index = (row * 32) + startCol + col + 4
+					break;
+				default:
+					index = (row * 32) + startCol + col
+			}
 
             if (index < 8 * 32) 
             {  
@@ -206,7 +294,7 @@ function displayClock()
     var hours = now.getHours();
     var minutes = now.getMinutes();
     var seconds = now.getSeconds();
-	var ampm = 'AM';
+	var ampm = 'am';
 
 	if (clock_mode == "12-hour") 
 	{
@@ -214,7 +302,7 @@ function displayClock()
 		if (hours > 12) 
 		{ 
 			hours = hours - 12;
-			ampm = 'PM';
+			ampm = 'pm';
 		}
 
 		hours = (hours < 10) ? '0' + hours : hours;
@@ -227,56 +315,85 @@ function displayClock()
 	seconds = String(seconds).padStart(2, '0');
 
     let timeDigits;
-    if(display_mode == "TimeMini")
-    {
-		timeDigits = hours + minutes + seconds + (clock_mode == '12-hour' ? ampm : '');
-    }
-    else
-    {
-	    if (clock_mode == '12-hour')
-		{
-			if (now.getSeconds() % 2 !== 0) 
+	switch(display_mode) 
+	{
+		case 'TimeMini':
+			timeDigits = hours + minutes + seconds + (clock_mode == '12-hour' ? ampm : '');
+			break;
+		case 'Time':
+			if (clock_mode == '12-hour')
 			{
-				timeDigits = hours + '.' + minutes + ampm;
+				if (now.getSeconds() % 2 !== 0) 
+				{
+					timeDigits = hours + '.' + minutes + ampm;
+				} 
+				else 
+				{
+					timeDigits = hours + ':' + minutes + ampm;
+				}
 			} 
 			else 
 			{
-				timeDigits = hours + ':' + minutes + ampm;
+				if (now.getSeconds() % 2 !== 0) 
+				{
+					timeDigits = hours + '.' + minutes + '.' + seconds;
+				} 
+				else 
+				{
+					timeDigits = hours + ':' + minutes + ':' + seconds;
+				}
 			}
-		} 
-		else 
-		{
-			if (now.getSeconds() % 2 !== 0) 
-			{
-				timeDigits = hours + '.' + minutes + '.' + seconds;
-			} 
-			else 
-			{
-				timeDigits = hours + ':' + minutes + ':' + seconds;
-			}
-		}
-    }	
+			break;
+		case 'Nollie':
+			timeDigits = 'NOLLIE';
+			break;
+		default:
+			timeDigits = 'WLED';
+	}
 
     let colOffset = 0;
     for (const digit of timeDigits) 
     {
         insertDigitIntoDisplay(display, DIGITS[digit], colOffset);
-        if(display_mode == "TimeMini")
-        {
-        	colOffset += 4; 
-        }
-        else
-        {
-	        if(digit == ":" || digit == ".")
-	        {
-	        	colOffset += 2;  
-		        
-	        }
-	        else
-	        {
-				colOffset += 4; 
-	        }	
-        }	
+		switch(display_mode)
+		{
+			case 'TimeMini':
+				colOffset += 4;
+				break;
+			case 'Time':
+				if(digit == ":" || digit == ".")
+				{
+					colOffset += 2;  
+					
+				}
+				else
+				{
+					colOffset += 4; 
+				}
+				break;
+			default:
+				switch(digit)
+				{
+					case 'W':
+						colOffset += 8;
+						break;
+					case 'N':
+						colOffset += 7;
+						break;
+					case 'O':
+					case 'E':
+					case 'D':
+						colOffset += 6;
+						break;
+					case 'L':
+						colOffset += 5;
+						break;
+					case 'I':
+						colOffset += 3;
+						break;
+				}
+				
+		}
     }
 
 }
@@ -324,7 +441,7 @@ class WLEDDevice {
 
 		const NumPackets = Math.ceil(ChannelLedCount / MaxLedsInPacket);
 
-		if (display_mode == 'Time' || display_mode == 'TimeMini' ) 
+		if (display_mode != 'Components') 
 		{
 			displayClock();	
 			let Snake_display = rearrangeDisplayForSnakeLayout(display);
