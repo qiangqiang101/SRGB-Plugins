@@ -164,25 +164,11 @@ function insertDigitIntoDisplay(display, digit, startCol)
         	let index;
         	if(display_mode == "TimeMini")
         	{
-				if(clock_mode == '12-hour')
-				{
-					index = (row * 32 + 32) + startCol + col; // 计算一维数组中的索引
-				}
-				else
-				{
-					index = (row * 32 + 32) + startCol + col + 4; // 计算一维数组中的索引
-				}  
+				index = (row * 32 + 32) + startCol + col + (clock_mode == '12-hour' ? 0 : 4); // 计算一维数组中的索引
         	}	
         	else
         	{
-            	if(clock_mode == '12-hour') 
-				{ 
-					index = (row * 32 + 32) + startCol + col + 3; // 计算一维数组中的索引
-				} 
-				else 
-				{
-					index = (row * 32 + 32) + startCol + col + 2; // 计算一维数组中的索引
-				} 
+				index = (row * 32 + 32) + startCol + col + (clock_mode == '12-hour' ? 3 : 2); // 计算一维数组中的索引
         	}
 
             if (index < 8 * 32) 
@@ -243,13 +229,7 @@ function displayClock()
     let timeDigits;
     if(display_mode == "TimeMini")
     {
-		if (clock_mode == '12-hour')
-		{ 
-			timeDigits = hours + minutes + seconds + ampm; 
-		} else 
-		{ 
-			timeDigits = hours + minutes + seconds; 
-		}
+		timeDigits = hours + minutes + seconds + (clock_mode == '12-hour' ? ampm : '');
     }
     else
     {
