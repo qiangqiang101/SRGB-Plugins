@@ -164,7 +164,14 @@ function insertDigitIntoDisplay(display, digit, startCol)
         	let index;
         	if(display_mode == "TimeMini")
         	{
-				index = (row * 32 + 32) + startCol + col + 1;  // 计算一维数组中的索引
+				if(clock_mode == '12-hour')
+				{
+					index = (row * 32 + 32) + startCol + col; // 计算一维数组中的索引
+				}
+				else
+				{
+					index = (row * 32 + 32) + startCol + col + 4; // 计算一维数组中的索引
+				}  
         	}	
         	else
         	{
