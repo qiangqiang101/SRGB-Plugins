@@ -22,7 +22,7 @@ export function ControllableParameters() {
 		{"property":"turnOffOnShutdown", "group":"settings", "label":"Turn WLED device OFF on Shutdown", "type":"boolean", "default":"false"},
 		{"property":"display_mode","label":"Display Mode", "type":"combobox", "values":["Components", "Time", "TimeMini", "Nollie", "WLED"], "default":"Components"},
 		{"property":"clock_mode","label":"Clock Mode", "type":"combobox", "values":["12-hour", "24-hour"], "default":"24-hour"},
-		{"property":"display_map","label":"Matrix Type", "type":"combobox", "values":["32x8"], "default":"32x8"},
+		{"property":"display_map","label":"Matrix Type", "type":"combobox", "values":["32x8", "Auto Detect"], "default":"32x8"}
 	];
 }
 
@@ -32,6 +32,80 @@ const BIG_ENDIAN = 1;
 const WLEDicon = "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";
 const colorBlack = "#000000";
 let lastForcedUpdate = 0;
+var autoDetect = {job_running: false, width: 0, height: 0};
+
+const LETTERS = {
+	'N':[
+		[1, 1, 0, 0, 1, 1],
+		[1, 1, 0, 0, 1, 1],
+		[1, 1, 0, 0, 1, 1],
+		[1, 1, 1, 0, 1, 1],
+		[1, 1, 1, 1, 1, 1],
+		[1, 1, 0, 1, 1, 1],
+		[1, 1, 0, 0, 1, 1],
+		[1, 1, 0, 0, 1, 1]
+	],
+	'O':[
+		[0, 1, 1, 1, 0],
+		[1, 1, 1, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 1, 1, 1],
+		[0, 1, 1, 1, 0]
+	],
+	'I':[
+		[1, 1],
+		[1, 1],
+		[0, 0],
+		[1, 1],
+		[1, 1],
+		[1, 1],
+		[1, 1],
+		[1, 1]
+	],
+	'L':[
+		[1, 1, 0, 0],
+		[1, 1, 0, 0],
+		[1, 1, 0, 0],
+		[1, 1, 0, 0],
+		[1, 1, 0, 0],
+		[1, 1, 0, 0],
+		[1, 1, 1, 1],
+		[1, 1, 1, 1]
+	],
+	'E':[
+		[1, 1, 1, 1, 1],
+		[1, 1, 1, 1, 1],
+		[1, 1, 0, 0, 0],
+		[1, 1, 1, 1, 1],
+		[1, 1, 1, 1, 1],
+		[1, 1, 0, 0, 0],
+		[1, 1, 1, 1, 1],
+		[1, 1, 1, 1, 1],
+	],
+	'W':[
+		[1, 1, 0, 0, 0, 1, 1],
+		[1, 1, 0, 0, 0, 1, 1],
+		[1, 1, 0, 0, 0, 1, 1],
+		[1, 1, 0, 0, 0, 1, 1],
+		[1, 1, 0, 1, 0, 1, 1],
+		[1, 1, 1, 1, 1, 1, 1],
+		[1, 1, 1, 1, 1, 1, 1],
+		[1, 1, 1, 0, 1, 1, 1],
+	],
+	'D':[
+		[1, 1, 1, 1, 0],
+		[1, 1, 1, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 0, 1, 1],
+		[1, 1, 1, 1, 1],
+		[1, 1, 1, 1, 0]
+	]
+}
 
 const DIGITS = 
 {
@@ -151,89 +225,21 @@ const DIGITS =
 		[1, 1, 1],
 		[1, 0, 1],
 		[1, 0 ,1]
-	],
-	'N':[
-		[1, 1, 0, 0, 1, 1],
-		[1, 1, 0, 0, 1, 1],
-		[1, 1, 0, 0, 1, 1],
-		[1, 1, 1, 0, 1, 1],
-		[1, 1, 1, 1, 1, 1],
-		[1, 1, 0, 1, 1, 1],
-		[1, 1, 0, 0, 1, 1],
-		[1, 1, 0, 0, 1, 1]
-	],
-	'O':[
-		[0, 1, 1, 1, 0],
-		[1, 1, 1, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 1, 1, 1],
-		[0, 1, 1, 1, 0]
-	],
-	'I':[
-		[1, 1],
-		[1, 1],
-		[0, 0],
-		[1, 1],
-		[1, 1],
-		[1, 1],
-		[1, 1],
-		[1, 1]
-	],
-	'L':[
-		[1, 1, 0, 0],
-		[1, 1, 0, 0],
-		[1, 1, 0, 0],
-		[1, 1, 0, 0],
-		[1, 1, 0, 0],
-		[1, 1, 0, 0],
-		[1, 1, 1, 1],
-		[1, 1, 1, 1]
-	],
-	'E':[
-		[1, 1, 1, 1, 1],
-		[1, 1, 1, 1, 1],
-		[1, 1, 0, 0, 0],
-		[1, 1, 1, 1, 1],
-		[1, 1, 1, 1, 1],
-		[1, 1, 0, 0, 0],
-		[1, 1, 1, 1, 1],
-		[1, 1, 1, 1, 1],
-	],
-	'W':[
-		[1, 1, 0, 0, 0, 1, 1],
-		[1, 1, 0, 0, 0, 1, 1],
-		[1, 1, 0, 0, 0, 1, 1],
-		[1, 1, 0, 0, 0, 1, 1],
-		[1, 1, 0, 1, 0, 1, 1],
-		[1, 1, 1, 1, 1, 1, 1],
-		[1, 1, 1, 1, 1, 1, 1],
-		[1, 1, 1, 0, 1, 1, 1],
-	],
-	'D':[
-		[1, 1, 1, 1, 0],
-		[1, 1, 1, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 1, 1, 1],
-		[1, 1, 1, 1, 0]
 	]
 };
 
 const _32x8_MAPPING = [
-	  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-	 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-	 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,
-	 96, 97, 98, 99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,
-	128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,
-	160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,
-	192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,
-	224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255
-]
+	0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+   32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
+   64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,
+   96, 97, 98, 99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,
+  128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,
+  160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,
+  192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,
+  224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255
+];
+
+var COMPONENT_MAPPING = [];
 
 let display = new Array(8 * 32).fill(0); 
 
@@ -259,10 +265,21 @@ function insertDigitIntoDisplay(display, digit, startCol)
 					index = (row * 32) + startCol + col
 			}
 
-            if (index < 8 * 32) 
-            {  
-                display[index] = digit[row][col];
-            }
+			if (display_map == '32x8') 
+			{
+				if (index < 8 * 32) 
+				{  
+					display[index] = digit[row][col];
+				}
+			}
+			else
+			{
+				if (index < autoDetect.height * autoDetect.width) 
+				{  
+					display[index] = digit[row][col];
+				}
+			}
+            
         }
     }
 }
@@ -279,12 +296,60 @@ function rearrangeDisplayForSnakeLayout(display)
     	}
     	else
     	{
-			//more mapping later
-    		//snakeDisplay[_32x8_MAPPING[i]] = display[i];
+			if (COMPONENT_MAPPING.length == 0)
+			{
+				if (!autoDetect.job_running) { detect2DMapping(); }
+			}
+			else
+			{
+				snakeDisplay[COMPONENT_MAPPING[i]] = display[i];
+			}
     	}	
     }
 
     return snakeDisplay;
+}
+
+function detect2DMapping()
+{
+	let instance = WLED;
+	autoDetect.job_running = true;
+
+	device.log(`Requesting 2D Mapping from http://${instance.ip}:${instance.port}/json/state/`);
+	XmlHttp.Get(`http://${instance.ip}:${instance.port}/json/state/`, (xhr) => {
+		if (xhr.readyState === 4) {
+			if(xhr.status === 200) {
+				let devicedata;
+
+				try {
+					devicedata = JSON.parse(xhr.response);
+
+					if (devicedata.seg[0].hasOwnProperty("stopY")) 
+					{
+						autoDetect.width = devicedata.seg[0].stop;
+						autoDetect.height = devicedata.seg[0].stopY;
+						let length = autoDetect.width * autoDetect.height;
+						for (let i = 0; i <= length; i++)
+						{
+							COMPONENT_MAPPING.push(i);
+						}
+						device.log('2D mapping found, automatic mapping completed.');
+						autoDetect.job_running = false;
+					}
+					else
+					{
+						device.log(`2D mapping not found, unable to auto mapping. Create your 2D mapping in http://${instance.ip}:${instance.port}/settings/2D`);
+					}
+				} catch (e) {
+					device.log("ERROR for IP " + instance.ip + ", JSON info could not be parsed!" + e);
+
+					return;
+				}
+			} else {
+				device.log("ERROR for IP " + instance.ip + ", device is OFFLINE or does not respond!");
+			}
+		}
+	});
 }
 
 function displayClock() 
@@ -354,17 +419,17 @@ function displayClock()
     let colOffset = 0;
     for (const digit of timeDigits) 
     {
-        insertDigitIntoDisplay(display, DIGITS[digit], colOffset);
 		switch(display_mode)
 		{
 			case 'TimeMini':
+				insertDigitIntoDisplay(display, DIGITS[digit], colOffset);
 				colOffset += 4;
 				break;
 			case 'Time':
+				insertDigitIntoDisplay(display, DIGITS[digit], colOffset);
 				if(digit == ":" || digit == ".")
 				{
 					colOffset += 2;  
-					
 				}
 				else
 				{
@@ -372,6 +437,7 @@ function displayClock()
 				}
 				break;
 			default:
+				insertDigitIntoDisplay(display, LETTERS[digit], colOffset);
 				switch(digit)
 				{
 					case 'W':
@@ -392,10 +458,8 @@ function displayClock()
 						colOffset += 3;
 						break;
 				}
-				
 		}
     }
-
 }
 
 class WLEDDevice {
@@ -910,3 +974,4 @@ class DeviceState {
 		async);
 	}
 }
+
