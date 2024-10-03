@@ -20,211 +20,1028 @@ export function ControllableParameters() {
 		{"property":"LightingMode", "group":"settings", "label":"Lighting Mode", "type":"combobox", "values":["Canvas", "Forced"], "default":"Canvas"},
 		{"property":"forcedColor", "group":"settings", "label":"Forced Color", "min":"0", "max":"360", "type":"color", "default":"#009bde"},
 		{"property":"turnOffOnShutdown", "group":"settings", "label":"Turn WLED device OFF on Shutdown", "type":"boolean", "default":"false"},
-		{"property":"display_mode","label":"Display Mode", "type":"combobox", "values":["Components", "Time", "TimeMini", "Nollie", "WLED"], "default":"Components"},
+		{"property":"display_mode","label":"Display Mode", "type":"combobox", "values":["Components", "Time", "TimeMini", "Custom Text"], "default":"Components"},
 		{"property":"clock_mode","label":"Clock Mode", "type":"combobox", "values":["12-hour", "24-hour"], "default":"24-hour"},
-		{"property":"display_map","label":"Matrix Type", "type":"combobox", "values":["32x8", "Auto Detect"], "default":"32x8"}
+		{"property":"display_map","label":"Matrix Type", "type":"combobox", "values":["32x8", "Auto Detect"], "default":"32x8"},
+		{"property":"custom_text", "label":"Display Mode: Custom Text", "type":"textfield", "default":"WLED"},
+		{"property":"paddingX", "label":"Padding X", "type":"textfield", "default":0, "filter":/^\d+$/},
+		{"property":"paddingY", "label":"Padding Y", "type":"textfield", "default":1, "filter":/^\d+$/},
 	];
 }
 
 let WLED;
+let display;
+let displaySize = {width: 0, height: 0}
 const MaxLedsInPacket = 485;
 const BIG_ENDIAN = 1;
 const WLEDicon = "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";
 const colorBlack = "#000000";
 let lastForcedUpdate = 0;
-var autoDetect = {job_running: false, width: 0, height: 0};
+let jobRunning = false;
 
 const LETTERS = {
-	'N':[
-		[1, 1, 0, 0, 1, 1],
-		[1, 1, 0, 0, 1, 1],
-		[1, 1, 0, 0, 1, 1],
-		[1, 1, 1, 0, 1, 1],
-		[1, 1, 1, 1, 1, 1],
-		[1, 1, 0, 1, 1, 1],
-		[1, 1, 0, 0, 1, 1],
-		[1, 1, 0, 0, 1, 1]
-	],
-	'O':[
-		[0, 1, 1, 1, 0],
-		[1, 1, 1, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 1, 1, 1],
-		[0, 1, 1, 1, 0]
-	],
-	'I':[
-		[1, 1],
-		[1, 1],
-		[0, 0],
-		[1, 1],
-		[1, 1],
-		[1, 1],
-		[1, 1],
-		[1, 1]
-	],
-	'L':[
-		[1, 1, 0, 0],
-		[1, 1, 0, 0],
-		[1, 1, 0, 0],
-		[1, 1, 0, 0],
-		[1, 1, 0, 0],
-		[1, 1, 0, 0],
+	'A':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
 		[1, 1, 1, 1],
-		[1, 1, 1, 1]
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
 	],
-	'E':[
-		[1, 1, 1, 1, 1],
-		[1, 1, 1, 1, 1],
-		[1, 1, 0, 0, 0],
-		[1, 1, 1, 1, 1],
-		[1, 1, 1, 1, 1],
-		[1, 1, 0, 0, 0],
-		[1, 1, 1, 1, 1],
-		[1, 1, 1, 1, 1],
+	'a':[
+		[0, 0, 0],
+		[0, 0, 0],
+		[1, 1, 0],
+		[0, 0, 1],
+		[1, 1, 1],
+		[1, 0, 1],
+		[0, 0, 0]
 	],
-	'W':[
-		[1, 1, 0, 0, 0, 1, 1],
-		[1, 1, 0, 0, 0, 1, 1],
-		[1, 1, 0, 0, 0, 1, 1],
-		[1, 1, 0, 0, 0, 1, 1],
-		[1, 1, 0, 1, 0, 1, 1],
-		[1, 1, 1, 1, 1, 1, 1],
-		[1, 1, 1, 1, 1, 1, 1],
-		[1, 1, 1, 0, 1, 1, 1],
+	'B':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'b':[
+		[1, 0, 0, 0],
+		[1, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'C':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 1],
+		[1, 0, 0, 0],
+		[1, 0, 0, 0],
+		[1, 0, 0, 0],
+		[0, 1, 1, 1],
+		[0, 0, 0, 0]
+	],
+	'c':[
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 1, 1],
+		[1, 0, 0],
+		[1, 0, 0],
+		[0, 1, 1],
+		[0, 0, 0]
 	],
 	'D':[
-		[1, 1, 1, 1, 0],
+		[0, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'd':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 1],
+		[0, 1, 1, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 1],
+		[0, 0, 0, 0]
+	],
+	'E':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 1],
+		[1, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 0],
+		[1, 1, 1, 1],
+		[0, 0, 0, 0]
+	],
+	'e':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 1, 1, 1],
+		[1, 0, 0, 0],
+		[0, 1, 1, 1],
+		[0, 0, 0, 0]
+	],
+	'F':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 1],
+		[1, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 0],
+		[1, 0, 0, 0],
+		[0, 0, 0, 0]
+	],
+	'f':[
+		[0, 0, 0, 0],
+		[0, 0, 1, 1],
+		[0, 1, 0, 0],
+		[1, 1, 1, 0],
+		[0, 1, 0, 0],
+		[0, 1, 0, 0],
+		[0, 0, 0, 0]
+	],
+	'G':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 0],
+		[1, 0, 0, 1],
+		[0, 1, 1, 1],
+		[0, 0, 0, 0]
+	],
+	'g':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 1, 1, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 1],
+		[0, 0, 0, 1],
+		[0, 1, 1, 0]
+	],
+	'H':[
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 1, 1, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'h':[
+		[0, 0, 0, 0],
+		[1, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'I':[
+		[0, 0, 0],
+		[1, 1, 1],
+		[0, 1, 0],
+		[0, 1, 0],
+		[0, 1, 0],
+		[1, 1, 1],
+		[0, 0, 0]
+	],
+	'i':[
+		[0, 1, 0],
+		[0, 0, 0],
+		[1, 1, 0],
+		[0, 1, 0],
+		[0, 1, 0],
+		[1, 1, 1],
+		[0, 0, 0]
+	],
+	'J':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 1],
+		[0, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'j':[
+		[0, 0, 1],
+		[0, 0, 0],
+		[0, 0, 1],
+		[0, 0, 1],
+		[0, 0, 1],
+		[0, 0, 1],
+		[1, 1, 0]
+	],
+	'K':[
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 0, 1, 0],
+		[1, 1, 0, 0],
+		[1, 0, 1, 0],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'k':[
+		[0, 0, 0, 0],
+		[1, 0, 0, 0],
+		[1, 0, 1, 0],
+		[1, 1, 0, 0],
+		[1, 0, 1, 0],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'L':[
+		[0, 0, 0],
+		[1, 0, 0],
+		[1, 0, 0],
+		[1, 0, 0],
+		[1, 0, 0],
+		[1, 1, 1],
+		[0, 0, 0]
+	],
+	'l':[
+		[1, 1, 0],
+		[0, 1, 0],
+		[0, 1, 0],
+		[0, 1, 0],
+		[0, 1, 0],
+		[1, 1, 1],
+		[0, 0, 0]
+	],
+	'M':[
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 1, 1, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'm':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 1, 1, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'N':[
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 1, 0, 1],
+		[1, 0, 1, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'n':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'O':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'o':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'P':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 1, 1, 0],
+		[1, 0, 0, 0],
+		[1, 0, 0, 0],
+		[0, 0, 0, 0]
+	],
+	'p':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 1, 1, 0],
+		[1, 0, 0, 0]
+	],
+	'Q':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 1]
+	],
+	'q':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 1, 1, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 1],
+		[0, 0, 0, 1]
+	],
+	'R':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0],
+	],
+	'r':[
+		[0, 0, 0],
+		[0, 0, 0],
+		[1, 0, 1],
+		[1, 1, 0],
+		[1, 0, 0],
+		[1, 0, 0],
+		[0, 0, 0]
+	],
+	'S':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 1],
+		[1, 0, 0, 0],
+		[0, 1, 1, 0],
+		[0, 0, 0, 1],
+		[1, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	's':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 1, 1, 1],
+		[1, 1, 0, 0],
+		[0, 0, 1, 1],
+		[1, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'T':[
+		[0, 0, 0, 0, 0],
 		[1, 1, 1, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
-		[1, 1, 0, 1, 1],
+		[0, 0, 1, 0, 0],
+		[0, 0, 1, 0, 0],
+		[0, 0, 1, 0, 0],
+		[0, 0, 1, 0, 0],
+		[0, 0, 0, 0, 0]
+	],
+	't':[
+		[0, 0, 0, 0],
+		[0, 1, 0, 0],
+		[1, 1, 1, 1],
+		[0, 1, 0, 0],
+		[0, 1, 0, 0],
+		[0, 0, 1, 1],
+		[0, 0, 0, 0]
+	],
+	'U':[
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'u':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 1],
+		[0, 0, 0, 0]
+	],
+	'V':[
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'v':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'W':[
+		[0, 0, 0, 0, 0],
+		[1, 0, 0, 0, 1],
+		[1, 0, 1, 0, 1],
+		[1, 0, 1, 0, 1],
+		[0, 1, 0, 1, 0],
+		[0, 1, 0, 1, 0],
+		[0, 0, 0, 0, 0]
+	],
+	'w':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 1, 1, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'X':[
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 1, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'x':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'Y':[
+		[0, 0, 0],
+		[1, 0, 1],
+		[1, 0, 1],
+		[1, 0, 1],
+		[0, 1, 0],
+		[0, 1, 0],
+		[0, 0, 0]
+	],
+	'y':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 1],
+		[0, 0, 0, 1],
+		[0, 1, 1, 0]
+	],
+	'Z':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 1],
+		[0, 0, 1, 0],
+		[0, 1, 0, 0],
+		[1, 0, 0, 0],
+		[1, 1, 1, 1],
+		[0, 0, 0, 0]
+	],
+	'z':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 1, 1, 1],
+		[0, 0, 1, 0],
+		[0, 1, 0, 0],
+		[1, 1, 1, 1],
+		[0, 0, 0, 0]
+	],
+	'`':[
+		[0, 0],
+		[1, 0],
+		[0, 1],
+		[0, 0],
+		[0, 0],
+		[0, 0],
+		[0, 0]
+	],
+	'~':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 1, 0, 1],
+		[1, 0, 1, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0]
+	],
+	'!':[
+		[0],
+		[1],
+		[1],
+		[1],
+		[0],
+		[1],
+		[0]
+	],
+	'@':[
+		[0, 0, 0, 0, 0],
+		[0, 1, 1, 1, 0],
+		[1, 0, 0, 0, 1],
+		[1, 0, 1, 1, 0],
+		[1, 0, 0, 0, 0],
+		[0, 1, 1, 1, 0],
+		[0, 0, 0, 0, 0]
+	],
+	'#':[
+		[0, 0, 0, 0, 0],
+		[0, 1, 0, 1, 0],
 		[1, 1, 1, 1, 1],
-		[1, 1, 1, 1, 0]
+		[0, 1, 0, 1, 0],
+		[1, 1, 1, 1, 1],
+		[0, 1, 0, 1, 0],
+		[0, 0, 0, 0, 0]
+	],
+	'$':[
+		[0, 0, 0],
+		[0, 1, 0],
+		[0, 1, 1],
+		[1, 0, 0],
+		[0, 1, 1],
+		[1, 1, 0],
+		[0, 1, 0]
+	],
+	'%':[
+		[0, 1, 0, 0, 0],
+		[1, 0, 1, 0, 1],
+		[0, 1, 0, 1, 0],
+		[0, 0, 1, 0, 0],
+		[0, 1, 0, 1, 0],
+		[1, 0, 1, 0, 1],
+		[0, 0, 0, 1, 0]
+	],
+	'^':[
+		[0, 0, 0],
+		[0, 1, 0],
+		[1, 0, 1],
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 0, 0]
+	],
+	'&':[
+		[0, 0, 0, 0, 0],
+		[0, 0, 1, 1, 0],
+		[0, 1, 0, 0, 0],
+		[0, 1, 1, 0, 1],
+		[1, 0, 0, 1, 0],
+		[0, 1, 1, 0, 1],
+		[0, 0, 0, 0, 0]
+	],
+	'*':[
+		[0, 0, 0],
+		[1, 0, 1],
+		[0, 1, 0],
+		[1, 1, 1],
+		[0, 1, 0],
+		[1, 0, 1],
+		[0, 0, 0]
+	],
+	'(':[
+		[0, 0],
+		[0, 1],
+		[1, 0],
+		[1, 0],
+		[1, 0],
+		[0, 1],
+		[0, 0]
+	],
+	')':[
+		[0, 0],
+		[1, 0],
+		[0, 1],
+		[0, 1],
+		[0, 1],
+		[1, 0],
+		[0, 0]
+	],
+	'-':[
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 0, 0],
+		[1, 1, 1],
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 0, 0]
+	],
+	'_':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 1, 1, 1]
+	],
+	'=':[
+		[0, 0, 0],
+		[0, 0, 0],
+		[1, 1, 1],
+		[0, 0, 0],
+		[1, 1, 1],
+		[0, 0, 0],
+		[0, 0, 0]
+	],
+	'+':[
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 1, 0],
+		[1, 1, 1],
+		[0, 1, 0],
+		[0, 0, 0],
+		[0, 0, 0]
+	],
+	'[':[
+		[0, 0],
+		[1, 1],
+		[1, 0],
+		[1, 0],
+		[1, 0],
+		[1, 1],
+		[0, 0]
+	],
+	'{':[
+		[0, 0, 1],
+		[0, 1, 0],
+		[1, 0, 0],
+		[1, 0, 0],
+		[0, 1, 0],
+		[0, 0, 1],
+		[0, 0, 0]
+	],
+	']':[
+		[0, 0],
+		[1, 1],
+		[0, 1],
+		[0, 1],
+		[0, 1],
+		[1, 1],
+		[0, 0]
+	],
+	'}':[
+		[1, 0, 0],
+		[0, 1, 0],
+		[0, 0, 1],
+		[0, 0, 1],
+		[0, 1, 0],
+		[1, 0, 0],
+		[0, 0, 0]
+	],
+	'\\':[
+		[0, 0, 0],
+		[1, 0, 0],
+		[1, 0, 0],
+		[0, 1, 0],
+		[0, 1, 0],
+		[0, 0, 1],
+		[0, 0, 0]
+	],
+	'|':[
+		[1],
+		[1],
+		[1],
+		[1],
+		[1],
+		[1],
+		[0]
+	],
+	';':[
+		[0, 0],
+		[0, 0],
+		[0, 0],
+		[0, 1],
+		[0, 0],
+		[0, 1],
+		[1, 0]
+	],
+	':':[
+		[0],
+		[0],
+		[0],
+		[1],
+		[0],
+		[1],
+		[0]
+	],
+	"'":[
+		[1],
+		[1],
+		[0],
+		[0],
+		[0],
+		[0],
+		[0]
+	],
+	'"':[
+		[0, 0, 0],
+		[1, 0, 1],
+		[1, 0, 1],
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 0, 0]
+	],
+	',':[
+		[0, 0],
+		[0, 0],
+		[0, 0],
+		[0, 0],
+		[0, 0],
+		[0, 1],
+		[1, 0]
+	],
+	'<':[
+		[0, 0, 0],
+		[0, 0, 1],
+		[0, 1, 0],
+		[1, 0, 0],
+		[0, 1, 0],
+		[0, 0, 1],
+		[0, 0, 0]
+	],
+	'.':[
+		[0],
+		[0],
+		[0],
+		[0],
+		[0],
+		[1],
+		[0]
+	],
+	'>':[
+		[0, 0, 0],
+		[1, 0, 0],
+		[0, 1, 0],
+		[0, 0, 1],
+		[0, 1, 0],
+		[1, 0, 0],
+		[0, 0, 0]
+	],
+	'/':[
+		[0, 0, 0],
+		[0, 0, 1],
+		[0, 1, 0],
+		[0, 1, 0],
+		[1, 0, 0],
+		[1, 0, 0],
+		[0, 0, 0]
+	],
+	'?':[
+		[0, 0, 0],
+		[1, 1, 0],
+		[0, 0, 1],
+		[1, 1, 0],
+		[0, 0, 0],
+		[1, 0, 0],
+		[0, 0, 0]
+	],
+	'0':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'1':[
+		[0, 0],
+		[0, 1],
+		[1, 1],
+		[0, 1],
+		[0, 1],
+		[0, 1],
+		[0, 0]
+	],
+	'2':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 0, 1, 0],
+		[0, 1, 0, 0],
+		[1, 1, 1, 1],
+		[0, 0, 0, 0]
+	],
+	'3':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 0],
+		[0, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 1],
+		[1, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'4':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 1],
+		[0, 0, 1, 1],
+		[0, 1, 0, 1],
+		[1, 1, 1, 1],
+		[0, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	'5':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 1],
+		[1, 0, 0, 0],
+		[1, 1, 1, 0],
+		[0, 0, 0, 1],
+		[1, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'6':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'7':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 1],
+		[0, 0, 0, 1],
+		[0, 0, 1, 0],
+		[0, 1, 0, 0],
+		[0, 1, 0, 0],
+		[0, 0, 0, 0]
+	],
+	'8':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	'9':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 1, 1, 1],
+		[0, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
+	],
+	' ':[
+		[0],
+		[0],
+		[0],
+		[0],
+		[0],
+		[0],
+		[0]
 	]
 }
 
 const DIGITS = 
 {
-	'0': [
-	    [1, 1, 1],
-	    [1, 0, 1],
-	    [1, 0, 1],
-	    [1, 0, 1],
-		[1, 0, 1],
-	    [1, 1, 1]
+	'0':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
 	],
-	'1': [
-	    [0, 1, 0],
-	    [1, 1, 0],
-	    [0, 1, 0],
-	    [0, 1, 0],
-		[0, 1, 0],
-	    [1, 1, 1]
+	'1':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 1],
+		[0, 0, 1, 1],
+		[0 ,0 ,0, 1],
+		[0 ,0 ,0, 1],
+		[0 ,0 ,0, 1],
+		[0 ,0 ,0, 0]
 	],
-	'2': [
-	    [1, 1, 1],
-	    [0, 0, 1],
-	    [1, 1, 1],
-	    [1, 0, 0],
-		[1, 0, 0],
-	    [1, 1, 1]
+	'2':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 0, 1, 0],
+		[0, 1, 0, 0],
+		[1, 1, 1, 1],
+		[0, 0, 0, 0]
 	],
-	'3': [
-	    [1, 1, 1],
-	    [0, 0, 1],
-	    [1, 1, 1],
-	    [0, 0, 1],
-		[0, 0, 1],
-	    [1, 1, 1]
+	'3':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 0],
+		[0, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 1],
+		[1, 1, 1, 0],
+		[0, 0, 0, 0]
 	],
-	'4': [
-	    [1, 0, 1],
-	    [1, 0, 1],
-	    [1, 1, 1],
-	    [0, 0, 1],
-		[0, 0, 1],
-	    [0, 0, 1]
+	'4':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 1],
+		[0, 0, 1, 1],
+		[0, 1, 0, 1],
+		[1, 1, 1, 1],
+		[0, 0, 0, 1],
+		[0, 0, 0, 0]
 	],
-	'5': [
-	    [1, 1, 1],
-	    [1, 0, 0],
-	    [1, 1, 1],
-	    [0, 0, 1],
-		[0, 0, 1],
-	    [1, 1, 1]
+	'5':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 1],
+		[1, 0, 0, 0],
+		[1, 1, 1, 0],
+		[0, 0, 0, 1],
+		[1, 1, 1, 0],
+		[0, 0, 0, 0]
 	],
-	'6': [
-	    [1, 1, 1],
-	    [1, 0, 0],
-	    [1, 1, 1],
-	    [1, 0, 1],
-		[1, 0, 1],
-	    [1, 1, 1]
+	'6':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
 	],
-	'7': [
-	    [1, 1, 1],
-	    [0, 0, 1],
-	    [0, 0, 1],
-	    [0, 1, 0],
-		[0, 1, 0],
-	    [0, 1, 0]
+	'7':[
+		[0, 0, 0, 0],
+		[1, 1, 1, 1],
+		[0, 0, 0, 1],
+		[0, 0, 1, 0],
+		[0, 1, 0, 0],
+		[0, 1, 0, 0],
+		[0, 0, 0, 0]
 	],
-	'8': [
-	    [1, 1, 1],
-	    [1, 0, 1],
-	    [1, 1, 1],
-	    [1, 0, 1],
-		[1, 0, 1],
-	    [1, 1, 1]
+	'8':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
 	],
-	'9': [
-	    [1, 1, 1],
-	    [1, 0, 1],
-	    [1, 1, 1],
-	    [0, 0, 1],
-		[0, 0, 1],
-	    [1, 1, 1]
+	'9':[
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[0, 1, 1, 1],
+		[0, 0, 0, 1],
+		[0, 1, 1, 0],
+		[0, 0, 0, 0]
 	],
-	':': [
-		    [0],
-		    [1],
-		    [0],
-			[0],
-		    [1],
-		    [0]
+	':':[
+		[0],
+		[0],
+		[0],
+		[1],
+		[0],
+		[1],
+		[0]
 	],
 	'.':[
-		    [0],
-		    [0],
-		    [0],
-		    [0],
-			[0],
-		    [0]	
+		[0],
+		[0],
+		[0],
+		[0],
+		[0],
+		[0],
+		[0]	
 	],
 	'a':[
-		[1, 1, 1],
-		[1, 0, 1],
-		[1, 1, 1],
-		[1, 0, 1],
-		[1, 0, 1]
+		[0, 0, 0, 0],
+		[0, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 1, 1, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
 	],
 	'p':[
-		[1, 1, 1],
-		[1, 0, 1],
-		[1, 1, 1],
-		[1, 0, 0],
-		[1, 0, 0],
+		[0, 0, 0, 0],
+		[1, 1, 1, 0],
+		[1, 0, 0, 1],
+		[1, 1, 1, 0],
+		[1, 0, 0, 0],
+		[1, 0, 0, 0],
+		[0, 0, 0, 0]
 	],
 	'm':[
-		[1, 0, 1],
-		[1, 1, 1],
-		[1, 1, 1],
-		[1, 0, 1],
-		[1, 0 ,1]
+		[0, 0, 0, 0],
+		[1, 0, 0, 1],
+		[1, 1, 1, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[1, 0, 0, 1],
+		[0, 0, 0, 0]
+	],
+	' ':[
+		[0],
+		[0],
+		[0],
+		[0],
+		[0],
+		[0],
+		[0]
 	]
 };
 
@@ -241,7 +1058,18 @@ const _32x8_MAPPING = [
 
 var COMPONENT_MAPPING = [];
 
-let display = new Array(8 * 32).fill(0); 
+export function ondisplay_mapChanged()
+{
+	device.log('Matrix Type Changed!');
+
+	if (display_map == "32x8") {
+		display = new Array(32 * 8).fill(0); 
+		displaySize.width = 32;
+		displaySize.height = 8;
+	} else {
+		detect2DMapping();
+	}
+}
 
 function insertDigitIntoDisplay(display, digit, startCol) 
 {
@@ -253,31 +1081,18 @@ function insertDigitIntoDisplay(display, digit, startCol)
 			switch(display_mode) 
 			{
 				case 'TimeMini':
-					index = (row * 32 + 32) + startCol + col + (clock_mode == '12-hour' ? 0 : 4); // 计算一维数组中的索引
+					index = (row * displaySize.width + (displaySize.width * paddingY)) + startCol + col + parseInt(paddingX); // 计算一维数组中的索引 (clock_mode == '12-hour' ? 0 : 4)
 					break;
 				case 'Time':
-					index = (row * 32 + 32) + startCol + col + (clock_mode == '12-hour' ? 3 : 2); // 计算一维数组中的索引
-					break;
-				case 'WLED':
-					index = (row * 32) + startCol + col + 4
+					index = (row * displaySize.width + (displaySize.width * paddingY)) + startCol + col + parseInt(paddingX); // 计算一维数组中的索引 (clock_mode == '12-hour' ? 3 : 2)
 					break;
 				default:
-					index = (row * 32) + startCol + col
+					index = (row * displaySize.width + (displaySize.width * paddingY)) + startCol + col + parseInt(paddingX);
 			}
 
-			if (display_map == '32x8') 
-			{
-				if (index < 8 * 32) 
-				{  
-					display[index] = digit[row][col];
-				}
-			}
-			else
-			{
-				if (index < autoDetect.height * autoDetect.width) 
-				{  
-					display[index] = digit[row][col];
-				}
+			if (index < displaySize.height * displaySize.width) 
+			{  
+				display[index] = digit[row][col];
 			}
             
         }
@@ -298,7 +1113,7 @@ function rearrangeDisplayForSnakeLayout(display)
     	{
 			if (COMPONENT_MAPPING.length == 0)
 			{
-				if (!autoDetect.job_running) { detect2DMapping(); }
+				if (!jobRunning) { detect2DMapping(); }
 			}
 			else
 			{
@@ -313,7 +1128,7 @@ function rearrangeDisplayForSnakeLayout(display)
 function detect2DMapping()
 {
 	let instance = WLED;
-	autoDetect.job_running = true;
+	jobRunning = true;
 
 	device.log(`Requesting 2D Mapping from http://${instance.ip}:${instance.port}/json/state/`);
 	XmlHttp.Get(`http://${instance.ip}:${instance.port}/json/state/`, (xhr) => {
@@ -326,15 +1141,16 @@ function detect2DMapping()
 
 					if (devicedata.seg[0].hasOwnProperty("stopY")) 
 					{
-						autoDetect.width = devicedata.seg[0].stop;
-						autoDetect.height = devicedata.seg[0].stopY;
-						let length = autoDetect.width * autoDetect.height;
+						displaySize.width = devicedata.seg[0].stop;
+						displaySize.height = devicedata.seg[0].stopY;
+						let length = displaySize.width * displaySize.height;
 						for (let i = 0; i <= length; i++)
 						{
 							COMPONENT_MAPPING.push(i);
 						}
 						device.log('2D mapping found, automatic mapping completed.');
-						autoDetect.job_running = false;
+						jobRunning = false;
+						display = new Array(displaySize.height * displaySize.width).fill(0); 
 					}
 					else
 					{
@@ -356,9 +1172,9 @@ function displayClock()
 {
 	display.fill(0);
 	const now = new Date();
-    var hours = now.getHours();
-    var minutes = now.getMinutes();
-    var seconds = now.getSeconds();
+	var hours = now.getHours();
+	var minutes = now.getMinutes();
+	var seconds = now.getSeconds();
 	var ampm = 'am';
 
 	if (clock_mode == "12-hour") 
@@ -379,11 +1195,11 @@ function displayClock()
 	minutes = String(minutes).padStart(2, '0');
 	seconds = String(seconds).padStart(2, '0');
 
-    let timeDigits;
+	let timeDigits;
 	switch(display_mode) 
 	{
 		case 'TimeMini':
-			timeDigits = hours + minutes + seconds + (clock_mode == '12-hour' ? ampm : '');
+			timeDigits = hours + minutes + (clock_mode == '12-hour' ? ampm : seconds);
 			break;
 		case 'Time':
 			if (clock_mode == '12-hour')
@@ -401,29 +1217,26 @@ function displayClock()
 			{
 				if (now.getSeconds() % 2 !== 0) 
 				{
-					timeDigits = hours + '.' + minutes + '.' + seconds;
+					timeDigits = hours + '.' + minutes + ' ' + seconds;
 				} 
 				else 
 				{
-					timeDigits = hours + ':' + minutes + ':' + seconds;
+					timeDigits = hours + ':' + minutes + ' ' + seconds;
 				}
 			}
 			break;
-		case 'Nollie':
-			timeDigits = 'NOLLIE';
-			break;
 		default:
-			timeDigits = 'WLED';
+			timeDigits = custom_text; //' '.repeat(paddingX) +
 	}
 
-    let colOffset = 0;
-    for (const digit of timeDigits) 
-    {
+	let colOffset = 0;
+	for (const digit of timeDigits) 
+	{
 		switch(display_mode)
 		{
 			case 'TimeMini':
 				insertDigitIntoDisplay(display, DIGITS[digit], colOffset);
-				colOffset += 4;
+				colOffset += 5;
 				break;
 			case 'Time':
 				insertDigitIntoDisplay(display, DIGITS[digit], colOffset);
@@ -431,35 +1244,77 @@ function displayClock()
 				{
 					colOffset += 2;  
 				}
+				else if(digit == " ")
+				{
+					colOffset += 1;  
+				}
 				else
 				{
-					colOffset += 4; 
+					colOffset += 5; 
 				}
 				break;
 			default:
 				insertDigitIntoDisplay(display, LETTERS[digit], colOffset);
 				switch(digit)
 				{
-					case 'W':
-						colOffset += 8;
+					case ' ':
+						colOffset += 1;
 						break;
-					case 'N':
-						colOffset += 7;
+					case '!':
+					case '|':
+					case ':':
+					case "'":
+					case '.':
+						colOffset += 2;
 						break;
-					case 'O':
-					case 'E':
-					case 'D':
-						colOffset += 6;
-						break;
-					case 'L':
-						colOffset += 5;
-						break;
-					case 'I':
+					case '`':
+					case '(':
+					case ')':
+					case '[':
+					case ']':
+					case ';':
+					case ',':
+					case '1':
 						colOffset += 3;
 						break;
+					case 'a':
+					case 'c':
+					case 'I':
+					case 'i':
+					case 'j':
+					case 'L':
+					case 'l':
+					case 'r':
+					case 'Y':
+					case '$':
+					case '^':
+					case '*':
+					case '-':
+					case '=':
+					case '+':
+					case '{':
+					case '}':
+					case '\\':
+					case '"':
+					case '<':
+					case '>':
+					case '/':
+					case '?':
+						colOffset += 4;
+						break;
+					case 'T':
+					case 'W':
+					case '@':
+					case '#':
+					case '%':
+					case '&':
+						colOffset += 6;
+						break;
+					default:
+						colOffset += 5;
 				}
 		}
-    }
+	}
 }
 
 class WLEDDevice {
@@ -507,17 +1362,20 @@ class WLEDDevice {
 
 		if (display_mode != 'Components') 
 		{
-			displayClock();	
-			let Snake_display = rearrangeDisplayForSnakeLayout(display);
-			for(let led_index = 0; led_index < Snake_display.length;led_index++)
+			if (display != undefined) 
 			{
-				if(Snake_display[led_index] == 0)
+				displayClock();	
+				let Snake_display = rearrangeDisplayForSnakeLayout(display);
+				for(let led_index = 0; led_index < Snake_display.length;led_index++)
 				{
-					RGBData[led_index * 3] = 0;
-					RGBData[led_index * 3 + 1] = 0;
-					RGBData[led_index * 3 + 2] = 0;
+					if(Snake_display[led_index] == 0)
+					{
+						RGBData[led_index * 3] = 0;
+						RGBData[led_index * 3 + 1] = 0;
+						RGBData[led_index * 3 + 2] = 0;
+					}	
 				}	
-			}	
+			}
 		}
 
 		for(let CurrPacket = 0; CurrPacket < NumPackets; CurrPacket++) {
@@ -538,6 +1396,15 @@ export function Initialize() {
 	WLED = new WLEDDevice(controller);
 	WLED.SetupChannel();
 	WLED.changeDeviceState(false, true, true);
+
+	if (display_map == "32x8") {
+		display = new Array(32 * 8).fill(0); 
+		displaySize.width = 32;
+		displaySize.height = 8;
+	} else {
+		detect2DMapping();
+	}
+	
 }
 
 export function Render() {
