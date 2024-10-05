@@ -1203,7 +1203,7 @@ function insertDigitIntoDisplay(display, digit, startCol)
     {
         for (let col = 0; col < digit[row].length; col++) 
         {        	
-			let index = (row * displaySize.width + (displaySize.width * (paddingY - 1))) + startCol + col + parseInt(paddingX);
+			let index = (row * displaySize.width + (displaySize.width * paddingY)) + startCol + col + parseInt(paddingX);
 
 			if (index < displaySize.height * displaySize.width) 
 			{  
