@@ -1173,20 +1173,18 @@ function displayClock()
 	display.fill(0);
 	const now = new Date();
 	var hours = now.getHours();
+	var hours12 = now.getHours();
 	var minutes = now.getMinutes();
 	var seconds = now.getSeconds();
 	var ampm = 'am';
 
 	if (clock_mode == "12-hour") 
 	{
-		if (hours == 0) { hours = 12; }
-		if (hours > 12) 
-		{ 
-			hours = hours - 12;
-			ampm = 'pm';
-		}
+		if (hours12 == 0) { hours12 = 12; }
+		if (hours12 > 12) { hours12 = hours12 - 12;}
+		if (hours >= 12) { ampm = 'pm'; }
 
-		hours = (hours < 10) ? '0' + hours : hours;
+		hours = (hours12 < 10) ? '0' + hours12 : hours12;
 		minutes = (minutes < 10) ? '0' + minutes : minutes;
 		seconds = (seconds < 10) ? '0' + seconds : seconds;
 	}
