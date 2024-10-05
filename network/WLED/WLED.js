@@ -20,10 +20,11 @@ export function ControllableParameters() {
 		{"property":"LightingMode", "group":"settings", "label":"Lighting Mode", "type":"combobox", "values":["Canvas", "Forced"], "default":"Canvas"},
 		{"property":"forcedColor", "group":"settings", "label":"Forced Color", "min":"0", "max":"360", "type":"color", "default":"#009bde"},
 		{"property":"turnOffOnShutdown", "group":"settings", "label":"Turn WLED device OFF on Shutdown", "type":"boolean", "default":"false"},
-		{"property":"display_mode","label":"Display Mode", "type":"combobox", "values":["Components", "Time", "TimeMini", "Custom Text"], "default":"Components"},
+		{"property":"display_mode","label":"Display Mode", "type":"combobox", "values":["Components", "Time", "TimeMini", "Custom Text", "Pixel Art"], "default":"Components"},
 		{"property":"clock_mode","label":"Clock Mode", "type":"combobox", "values":["12-hour", "24-hour"], "default":"24-hour"},
-		{"property":"display_map","label":"Matrix Type", "type":"combobox", "values":["8x8", "16x8", "24x8", "32x8", "64x8", "Auto Detect"], "default":"Auto Detect"},
+		{"property":"display_map","label":"Matrix Type", "type":"combobox", "values":["8x8", "16x8", "24x8", "32x8", "64x8", "16x16", "Auto Detect"], "default":"Auto Detect"},
 		{"property":"custom_text", "label":"Display Mode: Custom Text", "type":"textfield", "default":"WLED"},
+		{"property":"pixelArt", "label":"Display Mode: Pixel Art", "type":"textfield", "default":"[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],[0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],[1,0,0,0,0,1,0,0,1,0,0,1,0,0,0,1],[1,0,0,0,0,1,0,1,1,0,1,1,0,0,0,1],[1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,1],[1,1,0,0,0,1,1,1,1,1,1,1,0,0,1,1],[0,1,0,0,0,1,1,1,1,1,1,1,0,0,1,1],[0,0,1,0,0,1,1,1,1,1,1,1,0,0,1,0],[0,0,1,0,0,1,0,1,0,1,1,0,0,1,0,0],[0,0,0,1,1,0,0,1,0,1,0,1,1,1,0,0],[0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0]]"},
 		{"property":"paddingX", "label":"Padding X", "type":"textfield", "default":0, "filter":/^\d+$/},
 		{"property":"paddingY", "label":"Padding Y", "type":"textfield", "default":1, "filter":/^\d+$/},
 	];
@@ -1045,6 +1046,8 @@ const DIGITS =
 	]
 };
 
+let PIXELART = [];
+
 const _8x8_MAPPING = [
 	 0,   1,   2,   3,   4,   5,   6,   7,   
 	 8,   9,  10,  11,  12,  13,  14,  15,  
@@ -1100,7 +1103,58 @@ const _64x8_MAPPING = [
    448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511 
 ]
 
+const _16x16_MAPPING = [
+	0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  
+   16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31, 
+   32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  
+   48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63, 
+   64,  65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  
+   80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95, 
+   96,  97,  98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 
+   112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 
+  128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 
+  144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 
+  160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 
+  176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 
+  192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 
+  208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 
+  224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 
+  240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255
+];
+
 var COMPONENT_MAPPING = [];
+
+export function onpixelArtChanged()
+{
+	if (display_mode == 'Pixel Art')
+	{
+		try
+		{			
+			PIXELART = JSON.parse(pixelArt);
+			device.log('Pixel Art Updated!');
+		}
+		catch(ex)
+		{
+			device.log(ex.message);
+		}
+	}
+}
+
+export function ondisplay_modeChanged()
+{
+	if (display_mode == 'Pixel Art')
+	{
+		try
+		{			
+			PIXELART = JSON.parse(pixelArt);
+			device.log('Pixel Art Updated!');
+		}
+		catch(ex)
+		{
+			device.log(ex.message);
+		}
+	}
+}
 
 export function ondisplay_mapChanged()
 {
@@ -1133,6 +1187,11 @@ export function ondisplay_mapChanged()
 			displaySize.width = 64;
 			displaySize.height = 8;
 			break;
+		case '16x16':
+			display = new Array(16 * 16).fill(0); 
+			displaySize.width = 16;
+			displaySize.height = 16;
+			break;
 		default:
 			detect2DMapping();
 	}
@@ -1143,26 +1202,32 @@ function insertDigitIntoDisplay(display, digit, startCol)
     for (let row = 0; row < digit.length; row++) 
     {
         for (let col = 0; col < digit[row].length; col++) 
-        {
-        	let index;
-			switch(display_mode) 
-			{
-				case 'TimeMini':
-					index = (row * displaySize.width + (displaySize.width * paddingY)) + startCol + col + parseInt(paddingX);
-					break;
-				case 'Time':
-					index = (row * displaySize.width + (displaySize.width * paddingY)) + startCol + col + parseInt(paddingX);
-					break;
-				default:
-					index = (row * displaySize.width + (displaySize.width * paddingY)) + startCol + col + parseInt(paddingX);
-			}
+        {        	
+			let index = (row * displaySize.width + (displaySize.width * (paddingY - 1))) + startCol + col + parseInt(paddingX);
 
 			if (index < displaySize.height * displaySize.width) 
 			{  
 				display[index] = digit[row][col];
 			}
+			
         }
     }
+}
+
+function insertPixelArtIntoDisplay(display, art)
+{
+	for (let row = 0; row < art.length; row++)
+	{
+		for (let col = 0; col < art[row].length; col++)
+		{
+			let index = (row * displaySize.width + (displaySize.width * (paddingY - 1))) + displaySize.width + col + parseInt(paddingX);
+
+			if (index < displaySize.height * displaySize.width) 
+			{  
+				display[index] = art[row][col];
+			}
+		}
+	}
 }
 
 function rearrangeDisplayForSnakeLayout(display) 
@@ -1187,6 +1252,9 @@ function rearrangeDisplayForSnakeLayout(display)
 				break;
 			case '64x8':
 				snakeDisplay[_64x8_MAPPING[i]] = display[i];
+				break;
+			case '16x16':
+				snakeDisplay[_16x16_MAPPING[i]] = display[i];
 				break;
 			default:
 				if (COMPONENT_MAPPING.length == 0) { if (!jobRunning) { detect2DMapping(); } } else { snakeDisplay[COMPONENT_MAPPING[i]] = display[i]; }
@@ -1294,6 +1362,9 @@ function displayClock()
 				}
 			}
 			break;
+		case 'Pixel Art':
+			timeDigits = 'Pixel Art';
+			break;
 		default:
 			timeDigits = custom_text; //' '.repeat(paddingX) +
 	}
@@ -1311,16 +1382,19 @@ function displayClock()
 				insertDigitIntoDisplay(display, DIGITS[digit], colOffset);
 				if(digit == ":" || digit == ".")
 				{
-					colOffset += 2;  
+					colOffset += 2;
 				}
 				else if(digit == " ")
 				{
-					colOffset += 1;  
+					colOffset += 1; 
 				}
 				else
 				{
 					colOffset += 5; 
 				}
+				break;
+			case 'Pixel Art':
+				insertPixelArtIntoDisplay(display, PIXELART);
 				break;
 			default:
 				insertDigitIntoDisplay(display, LETTERS[digit], colOffset);
@@ -1466,12 +1540,53 @@ export function Initialize() {
 	WLED.SetupChannel();
 	WLED.changeDeviceState(false, true, true);
 
-	if (display_map == "32x8") {
-		display = new Array(32 * 8).fill(0); 
-		displaySize.width = 32;
-		displaySize.height = 8;
-	} else {
-		detect2DMapping();
+	switch(display_map)
+	{
+		case '8x8':
+			display = new Array(8 * 8).fill(0); 
+			displaySize.width = 8;
+			displaySize.height = 8;
+			break;
+		case '16x8':
+			display = new Array(16 * 8).fill(0); 
+			displaySize.width = 16;
+			displaySize.height = 8;
+			break;
+		case '24x8':
+			display = new Array(24 * 8).fill(0); 
+			displaySize.width = 16;
+			displaySize.height = 8;
+			break;
+		case '32x8':
+			display = new Array(32 * 8).fill(0); 
+			displaySize.width = 32;
+			displaySize.height = 8;
+			break;
+		case '64x8':
+			display = new Array(64 * 8).fill(0); 
+			displaySize.width = 64;
+			displaySize.height = 8;
+			break;
+		case '16x16':
+			display = new Array(16 * 16).fill(0); 
+			displaySize.width = 16;
+			displaySize.height = 16;
+			break;
+		default:
+			detect2DMapping();
+	}
+
+	if (display_mode == 'Pixel Art')
+	{
+		try
+		{			
+			PIXELART = JSON.parse(pixelArt);
+			device.log('Pixel Art Updated!');
+		}
+		catch(ex)
+		{
+			device.log(ex.message);
+		}
 	}
 	
 }
