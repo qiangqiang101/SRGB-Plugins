@@ -20,10 +20,10 @@ export function ControllableParameters() {
 		{"property":"LightingMode", "group":"settings", "label":"Lighting Mode", "type":"combobox", "values":["Canvas", "Forced"], "default":"Canvas"},
 		{"property":"forcedColor", "group":"settings", "label":"Forced Color", "min":"0", "max":"360", "type":"color", "default":"#009bde"},
 		{"property":"turnOffOnShutdown", "group":"settings", "label":"Turn WLED device OFF on Shutdown", "type":"boolean", "default":"false"},
-		{"property":"display_mode","label":"Display Mode", "type":"combobox", "values":["Components", "Time", "TimeMini", "Custom Text", "Pixel Art"], "default":"Components"},
-		{"property":"clock_mode","label":"Clock Mode", "type":"combobox", "values":["12-hour", "24-hour"], "default":"24-hour"},
+		{"property":"display_mode","label":"Display Mode", "type":"combobox", "values":["Components", "Time", "Custom Text", "Pixel Art"], "default":"Components"},
 		{"property":"display_map","label":"Matrix Type", "type":"combobox", "values":["8x8", "16x8", "24x8", "32x8", "64x8", "16x16", "Auto Detect"], "default":"Auto Detect"},
 		{"property":"custom_text", "label":"Display Mode: Custom Text", "type":"textfield", "default":"WLED"},
+		{"property":"time_format", "label":"Display Mode: Time", "type":"textfield", "default":"HH:mm tt"},
 		{"property":"pixelArt", "label":"Display Mode: Pixel Art", "type":"textfield", "default":"[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],[0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],[0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],[1,0,0,0,0,1,0,0,1,0,0,1,0,0,0,1],[1,0,0,0,0,1,0,1,1,0,1,1,0,0,0,1],[1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,1],[1,1,0,0,0,1,1,1,1,1,1,1,0,0,1,1],[0,1,0,0,0,1,1,1,1,1,1,1,0,0,1,1],[0,0,1,0,0,1,1,1,1,1,1,1,0,0,1,0],[0,0,1,0,0,1,0,1,0,1,1,0,0,1,0,0],[0,0,0,1,1,0,0,1,0,1,0,1,1,1,0,0],[0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0]]"},
 		{"property":"paddingX", "label":"Padding X", "type":"textfield", "default":0, "filter":/^\d+$/},
 		{"property":"paddingY", "label":"Padding Y", "type":"textfield", "default":1, "filter":/^\d+$/},
@@ -999,14 +999,14 @@ const DIGITS =
 		[1],
 		[0]
 	],
-	'.':[
+	';':[
 		[0],
 		[0],
 		[0],
 		[0],
 		[0],
 		[0],
-		[0]	
+		[0]
 	],
 	'a':[
 		[0, 0, 0, 0],
@@ -1043,7 +1043,52 @@ const DIGITS =
 		[0],
 		[0],
 		[0]
-	]
+	],
+	'/':[
+		[0, 0, 0],
+		[0, 0, 1],
+		[0, 1, 0],
+		[0, 1, 0],
+		[1, 0, 0],
+		[1, 0, 0],
+		[0, 0, 0]
+	],
+	'-':[
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 0, 0],
+		[1, 1, 1],
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 0, 0]
+	],
+	'_':[
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[1, 1, 1, 1]
+	],
+	'.':[
+		[0],
+		[0],
+		[0],
+		[0],
+		[0],
+		[1],
+		[0]
+	],
+	',':[
+		[0, 0],
+		[0, 0],
+		[0, 0],
+		[0, 0],
+		[0, 0],
+		[0, 1],
+		[1, 0]
+	],
 };
 
 let PIXELART = [];
@@ -1142,17 +1187,21 @@ export function onpixelArtChanged()
 
 export function ondisplay_modeChanged()
 {
-	if (display_mode == 'Pixel Art')
+	switch (display_mode)
 	{
-		try
-		{			
-			PIXELART = JSON.parse(pixelArt);
-			device.log('Pixel Art Updated!');
-		}
-		catch(ex)
-		{
-			device.log(ex.message);
-		}
+		case 'Pixel Art':
+			try
+			{			
+				PIXELART = JSON.parse(pixelArt);
+				device.log('Pixel Art Updated!');
+			}
+			catch(ex)
+			{
+				device.log(ex.message);
+			}
+			break;
+		default:
+			break;
 	}
 }
 
@@ -1307,66 +1356,61 @@ function detect2DMapping()
 	});
 }
 
+function replaceEx(str, obj)
+{
+	for (const x in obj) { str = str.replace(new RegExp(x, 'g'), obj[x]); }
+	return str
+}
+
+function formatDateTime(format)
+{
+	const now = new Date();
+	const month = now.getMonth() + 1;
+	const day = now.getDate();
+	const year = now.getFullYear();
+
+	const hour12 = now.getHours() % 12 || 12;
+	const hour24 = now.getHours();
+	const minute = now.getMinutes();
+	const second = now.getSeconds();
+	const ampm = now.getHours() >= 12 ? 'pm' : 'am';
+
+	let _format = replaceEx(format, {
+		'dd': String(day).padStart(2, '0'), 'd': day, 
+		'hh': String(hour12).padStart(2, '0'), 'h': hour12, 
+		'HH': String(hour24).padStart(2, '0'), 'H': hour24, 
+		'mm': String(minute).padStart(2, '0'), 'm': minute, 
+		'MM': String(month).padStart(2, '0'), 'M': month, 
+		'ss': String(second).padStart(2, '0'), 's': second, 
+		'tt': ampm, 't': ampm == 'am' ? 'a' : 'p', 
+		'yyyy': year, 'yyy': year, 'yy': year.toString().substring(2), 'y': year.toString().substring(2), 
+	});
+	return _format;
+}
+
 function displayClock() 
 {
 	display.fill(0);
 	const now = new Date();
-	var hours = now.getHours();
-	var hours12 = now.getHours();
-	var minutes = now.getMinutes();
-	var seconds = now.getSeconds();
-	var ampm = 'am';
-
-	if (clock_mode == "12-hour") 
-	{
-		if (hours12 == 0) { hours12 = 12; }
-		if (hours12 > 12) { hours12 = hours12 - 12;}
-		if (hours >= 12) { ampm = 'pm'; }
-
-		hours = (hours12 < 10) ? '0' + hours12 : hours12;
-		minutes = (minutes < 10) ? '0' + minutes : minutes;
-		seconds = (seconds < 10) ? '0' + seconds : seconds;
-	}
-
-	hours = String(hours).padStart(2, '0');
-	minutes = String(minutes).padStart(2, '0');
-	seconds = String(seconds).padStart(2, '0');
 
 	let timeDigits;
 	switch(display_mode) 
 	{
-		case 'TimeMini':
-			timeDigits = hours + minutes + (clock_mode == '12-hour' ? ampm : seconds);
-			break;
-		case 'Time':
-			if (clock_mode == '12-hour')
-			{
-				if (now.getSeconds() % 2 !== 0) 
-				{
-					timeDigits = hours + '.' + minutes + ampm;
-				} 
-				else 
-				{
-					timeDigits = hours + ':' + minutes + ampm;
-				}
-			} 
-			else 
-			{
-				if (now.getSeconds() % 2 !== 0) 
-				{
-					timeDigits = hours + '.' + minutes + ' ' + seconds;
-				} 
-				else 
-				{
-					timeDigits = hours + ':' + minutes + ' ' + seconds;
-				}
-			}
-			break;
 		case 'Pixel Art':
 			timeDigits = 'Pixel Art';
 			break;
+		case 'Custom Text':
+			timeDigits = custom_text;
+			break;
 		default:
-			timeDigits = custom_text; //' '.repeat(paddingX) +
+			if (now.getSeconds() % 2 !== 0) 
+			{
+				timeDigits = formatDateTime(time_format).replace(':', ';');
+			} 
+			else 
+			{
+				timeDigits = formatDateTime(time_format);
+			}
 	}
 
 	let colOffset = 0;
@@ -1374,13 +1418,9 @@ function displayClock()
 	{
 		switch(display_mode)
 		{
-			case 'TimeMini':
-				insertDigitIntoDisplay(display, DIGITS[digit], colOffset);
-				colOffset += 5;
-				break;
 			case 'Time':
 				insertDigitIntoDisplay(display, DIGITS[digit], colOffset);
-				if(digit == ":" || digit == ".")
+				if(digit == ":" || digit == ";")
 				{
 					colOffset += 2;
 				}
