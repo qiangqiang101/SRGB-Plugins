@@ -177,7 +177,7 @@ export function ImageUrl() {
 
 
 export function DiscoveryService() {
-	this.IconUrl = "https://raw.githubusercontent.com/SRGBmods/public/main/images/wlc/wlc-service.png";
+	this.IconUrl = "https://assets.signalrgb.com/brands/srgbmods/logo.jpg";
 
 	this.MDns = [ "_srgbmods-wlc._tcp.local." ];
 
